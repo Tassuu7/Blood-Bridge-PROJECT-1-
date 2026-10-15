@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, X, MapPin, Radio } from 'lucide-react';
 
 export interface EmergencyAlert {
@@ -10,10 +10,35 @@ export interface EmergencyAlert {
   targetBloodGroups: string[];
 }
 
-export const EmergencyBanner: React.FC<{ alerts?: EmergencyAlert[] }> = ({ alerts = [] }) => {
+export const EmergencyBanner: React.FC<{ alerts?: EmergencyAlert[] }> = ({ alerts }) => {
+  const [internalAlerts, setInternalAlerts] = useState<EmergencyAlert[]>([]);
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
 
-  const activeAlerts = alerts.filter((a) => !dismissed[a.id]);
+  useEffect(() => {
+    if (alerts !== undefined) {
+      setInternalAlerts(alerts);
+      return;
+    }
+
+    const fetchActiveAlerts = async () => {
+      try {
+        const res = await fetch('/api/broadcasts/active');
+        if (res.ok) {
+          const body = await res.json();
+          if (body.success && Array.isArray(body.data)) {
+            setInternalAlerts(body.data);
+          }
+        }
+      } catch {
+        // Fallback gracefully if endpoint is unavailable
+      }
+    };
+
+    fetchActiveAlerts();
+  }, [alerts]);
+
+  const effectiveAlerts = alerts !== undefined ? alerts : internalAlerts;
+  const activeAlerts = effectiveAlerts.filter((a) => !dismissed[a.id]);
   if (activeAlerts.length === 0) return null;
 
   const current = activeAlerts[0];
