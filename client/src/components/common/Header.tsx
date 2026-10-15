@@ -13,6 +13,7 @@ import {
   Zap,
   User,
   HeartHandshake,
+  Trophy,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -101,6 +102,15 @@ export const Header: React.FC = () => {
                 Dashboard
               </Link>
             )}
+
+            <Link
+              to="/leaderboard"
+              className="flex items-center space-x-1 text-xs font-semibold text-slate-700 hover:text-crimson-700 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition"
+              title="Community Hall of Fame"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-500" />
+              <span className="hidden md:inline">Leaderboard</span>
+            </Link>
 
             {/* In-App Notifications Center */}
             {isAuthenticated && (

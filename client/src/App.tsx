@@ -6,6 +6,9 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 import { ToastContainer } from './components/common/ToastContainer';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { EmergencyBanner } from './components/EmergencyBanner';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -15,6 +18,7 @@ import { DonorDashboard } from './pages/DonorDashboard';
 import { RequesterDashboard } from './pages/RequesterDashboard';
 import { HospitalDashboard } from './pages/HospitalDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { NotFoundPage, ForbiddenPage } from './pages/NotFoundPage';
 import { UserRole } from '@shared/types';
 
@@ -47,69 +51,74 @@ const ProtectedRoute: React.FC<{
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <SocketProvider>
-          <NotificationProvider>
-            <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  {/* Public Pages */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+      <ErrorBoundary>
+        <AuthProvider>
+          <SocketProvider>
+            <NotificationProvider>
+              <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+                <EmergencyBanner />
+                <Header />
+                <main className="flex-1">
+                  <Routes>
+                    {/* Public Pages */}
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/leaderboard" element={<LeaderboardPage />} />
 
-                  {/* Donor Portal */}
-                  <Route
-                    path="/donor/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={['DONOR']}>
-                        <DonorDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Donor Portal */}
+                    <Route
+                      path="/donor/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={['DONOR']}>
+                          <DonorDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Requester Portal */}
-                  <Route
-                    path="/requester/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={['REQUESTER']}>
-                        <RequesterDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Requester Portal */}
+                    <Route
+                      path="/requester/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={['REQUESTER']}>
+                          <RequesterDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Hospital Verification Center */}
-                  <Route
-                    path="/hospital/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={['HOSPITAL']}>
-                        <HospitalDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Hospital Verification Center */}
+                    <Route
+                      path="/hospital/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={['HOSPITAL']}>
+                          <HospitalDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Admin Command Center */}
-                  <Route
-                    path="/admin/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={['ADMIN']}>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Admin Command Center */}
+                    <Route
+                      path="/admin/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={['ADMIN']}>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Errors */}
-                  <Route path="/forbidden" element={<ForbiddenPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </main>
-              <Footer />
-              <ToastContainer />
-            </div>
-          </NotificationProvider>
-        </SocketProvider>
-      </AuthProvider>
+                    {/* Errors */}
+                    <Route path="/forbidden" element={<ForbiddenPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <ToastContainer />
+                <OfflineIndicator />
+              </div>
+            </NotificationProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 };

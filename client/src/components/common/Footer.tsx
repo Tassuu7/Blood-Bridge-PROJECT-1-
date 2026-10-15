@@ -79,6 +79,11 @@ export const Footer: React.FC = () => {
                   Admin Command Center
                 </Link>
               </li>
+              <li>
+                <Link to="/leaderboard" className="hover:text-crimson-700 transition font-medium text-amber-700">
+                  ★ Community Leaderboard
+                </Link>
+              </li>
             </ul>
           </div>
 

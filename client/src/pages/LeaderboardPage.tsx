@@ -99,7 +99,7 @@ export const LeaderboardPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <Link
-            to="/dashboard/donor"
+            to="/donor/dashboard"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900"
           >
             <ArrowLeft className="w-4 h-4" />
