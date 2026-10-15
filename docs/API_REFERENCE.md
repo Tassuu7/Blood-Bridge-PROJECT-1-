@@ -66,6 +66,11 @@ Lock units for confirmed surgical emergency.
 - **Role**: `HOSPITAL`, `ADMIN`
 - **Body**: `{ hospitalId, bloodGroup, units }`
 
+### `POST /api/inventory/release`
+Release reserved units back to available stock upon cancellation.
+- **Role**: `HOSPITAL`, `ADMIN`
+- **Body**: `{ bloodGroup, units }`
+
 ### `POST /api/inventory/dispense`
 Dispense reserved units for patient transfusion.
 - **Role**: `HOSPITAL`, `ADMIN`

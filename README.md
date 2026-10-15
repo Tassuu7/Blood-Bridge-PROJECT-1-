@@ -114,6 +114,8 @@ npm test
 18. `webhook.test.ts`: Outbound HMAC-SHA256 signature verification
 19. `e2eLifecycle.test.ts`: Complete end-to-end trauma admission to fulfillment orchestration
 20. `feedbackParticipantGuards.test.ts`: Post-donation feedback participant verification, completion lifecycle guards, and donor notifications
+21. `inventoryGuardsAndLifecycle.test.ts`: Hospital tenancy isolation, input sanitization bounds, and reservation/dispense lifecycle guards
+22. `deepHealthAndLivenessGuards.test.ts`: Kubernetes liveness/readiness probes, event loop latency, and diagnostic telemetry
 
 ---
 
