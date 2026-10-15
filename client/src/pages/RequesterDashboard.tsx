@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { CreateRequestModal } from '../components/modals/CreateRequestModal';
+import { CancelRequestModal } from '../components/modals/CancelRequestModal';
 import { EmergencyTimeline } from '../components/common/EmergencyTimeline';
 import {
   Heart,
@@ -17,6 +18,7 @@ import {
   PackageCheck,
   RefreshCw,
   Layers,
+  XCircle,
 } from 'lucide-react';
 
 export const RequesterDashboard: React.FC = () => {
@@ -27,6 +29,7 @@ export const RequesterDashboard: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const loadRequests = async () => {
@@ -82,6 +85,7 @@ export const RequesterDashboard: React.FC = () => {
     socket.on('request:escalated', handleEscalated);
     socket.on('blood:received', handleUpdate);
     socket.on('request:completed', handleUpdate);
+    socket.on('request:cancelled', handleUpdate);
 
     return () => {
       socket.off('request:verified', handleUpdate);
@@ -90,6 +94,7 @@ export const RequesterDashboard: React.FC = () => {
       socket.off('request:escalated', handleEscalated);
       socket.off('blood:received', handleUpdate);
       socket.off('request:completed', handleUpdate);
+      socket.off('request:cancelled', handleUpdate);
     };
   }, [socket, showToast]);
 
@@ -227,14 +232,23 @@ export const RequesterDashboard: React.FC = () => {
                     </p>
                   </div>
 
-                  {activeRequest.status !== 'COMPLETED' && (
-                    <button
-                      onClick={() => handleMarkBloodReceived(activeRequest.id)}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 self-start"
-                    >
-                      <PackageCheck className="w-4 h-4" />
-                      <span>Confirm Blood Received</span>
-                    </button>
+                  {activeRequest.status !== 'COMPLETED' && activeRequest.status !== 'CANCELLED' && activeRequest.status !== 'REJECTED' && (
+                    <div className="flex items-center space-x-2 self-start flex-wrap gap-y-2">
+                      <button
+                        onClick={() => handleMarkBloodReceived(activeRequest.id)}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
+                      >
+                        <PackageCheck className="w-4 h-4" />
+                        <span>Confirm Blood Received</span>
+                      </button>
+                      <button
+                        onClick={() => setIsCancelModalOpen(true)}
+                        className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-700 border border-slate-200 font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
+                      >
+                        <XCircle className="w-4 h-4 text-slate-500 hover:text-red-600" />
+                        <span>Cancel Request</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -360,6 +374,19 @@ export const RequesterDashboard: React.FC = () => {
           loadRequests();
         }}
       />
+
+      {/* Cancel Request Modal */}
+      {activeRequest && (
+        <CancelRequestModal
+          isOpen={isCancelModalOpen}
+          onClose={() => setIsCancelModalOpen(false)}
+          requestId={activeRequest.id}
+          patientInitials={activeRequest.patientInitials}
+          onCancelled={() => {
+            loadRequests();
+          }}
+        />
+      )}
     </div>
   );
 };
