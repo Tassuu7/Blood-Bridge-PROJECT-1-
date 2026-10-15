@@ -18,6 +18,8 @@ function runStep(name, fn) {
   } catch (err) {
     console.log('❌ FAILED');
     console.error(err.message);
+    if (err.stdout) console.error(err.stdout.toString());
+    if (err.stderr) console.error(err.stderr.toString());
     process.exit(1);
   }
 }
@@ -45,7 +47,7 @@ runStep('Security check (zero committed .env secrets)', () => {
 });
 
 // 2. Server automated tests
-runStep('Running 19 test suites via Vitest', () => {
+runStep('Running automated test suites via Vitest', () => {
   execSync('npm test', { cwd: path.join(ROOT_DIR, 'server'), stdio: 'pipe' });
 });
 
