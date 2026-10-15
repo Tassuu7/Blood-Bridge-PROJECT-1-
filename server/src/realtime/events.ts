@@ -30,4 +30,7 @@ export const SOCKET_EVENTS = {
   
   // Platform / Metrics
   METRICS_UPDATED: 'platform:metrics_updated',
+
+  // Hospital Inventory
+  INVENTORY_UPDATED: 'inventory:updated',
 } as const;
