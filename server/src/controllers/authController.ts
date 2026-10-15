@@ -34,6 +34,18 @@ export async function register(req: Request, res: Response) {
   try {
     const validated = registerSchema.parse(req.body);
 
+    // Security Guard: Prevent unauthenticated public privilege escalation to ADMIN
+    if (validated.role === 'ADMIN') {
+      const adminSecretKey = req.body.adminSecretKey || req.headers['x-admin-secret-key'];
+      const configuredSecret = process.env.ADMIN_REGISTRATION_SECRET || 'bloodbridge_admin_init_secret_2026';
+      if (!adminSecretKey || adminSecretKey !== configuredSecret) {
+        return res.status(403).json({
+          success: false,
+          message: 'Public self-registration for administrative roles is restricted. An authorized administrator provisioning key is required.',
+        });
+      }
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: validated.email.toLowerCase().trim() },
     });

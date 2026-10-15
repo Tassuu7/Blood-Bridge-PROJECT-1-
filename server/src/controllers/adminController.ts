@@ -205,6 +205,22 @@ export async function updateUserStatus(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'Status must be ACTIVE or SUSPENDED.' });
     }
 
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Guard: Prevent administrators from suspending their own active account/session
+    if (targetUser.id === req.user?.id && status === 'SUSPENDED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Administrators cannot suspend their own active account.',
+      });
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { status },
@@ -215,7 +231,12 @@ export async function updateUserStatus(req: Request, res: Response) {
       action: `USER_STATUS_${status}`,
       entityType: 'User',
       entityId: userId,
-      details: { newStatus: status },
+      details: {
+        newStatus: status,
+        previousStatus: targetUser.status,
+        targetEmail: targetUser.email,
+        targetRole: targetUser.role,
+      },
       ipAddress: req.ip,
     });
 
