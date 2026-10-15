@@ -34,4 +34,7 @@ export const SOCKET_EVENTS = {
   // Regional Emergency Broadcasts
   EMERGENCY_BROADCAST: 'emergency:broadcast',
   EMERGENCY_BROADCAST_REVOKED: 'emergency:broadcast_revoked',
+
+  // Hospital Inventory
+  INVENTORY_UPDATED: 'inventory:updated',
 } as const;
