@@ -113,9 +113,10 @@ npm test
 17. `emergencyBroadcast.test.ts`: Tiered regional mass-casualty dispatch
 18. `webhook.test.ts`: Outbound HMAC-SHA256 signature verification
 19. `e2eLifecycle.test.ts`: Complete end-to-end trauma admission to fulfillment orchestration
-20. `requestLifecycleGuards.test.ts`: Role-based actor authorization, hospital scoping, and lifecycle state transition guards for request completion and radius escalation
+20. `authGovernanceGuards.test.ts`: Prevention of public ADMIN privilege escalation and administrator self-lockout defense in user governance
 21. `inventoryGuardsAndLifecycle.test.ts`: Hospital tenancy isolation, input sanitization bounds, and reservation/dispense lifecycle guards
 22. `deepHealthAndLivenessGuards.test.ts`: Kubernetes liveness/readiness probes, event loop latency, and diagnostic telemetry
+23. `requestLifecycleGuards.test.ts`: Role-based actor authorization, hospital scoping, and lifecycle state transition guards for request completion and radius escalation
 
 ---
 
