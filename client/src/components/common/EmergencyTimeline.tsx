@@ -48,6 +48,7 @@ export const EmergencyTimeline: React.FC<TimelineProps> = ({ currentStatus }) =>
         return 7;
       case 'REJECTED':
       case 'EXPIRED':
+      case 'CANCELLED':
         return -1;
       default:
         return 0;
@@ -55,18 +56,38 @@ export const EmergencyTimeline: React.FC<TimelineProps> = ({ currentStatus }) =>
   };
 
   const activeIndex = getActiveStepIndex(currentStatus);
-  const isTerminated = currentStatus === 'REJECTED' || currentStatus === 'EXPIRED';
+  const isTerminated =
+    currentStatus === 'REJECTED' || currentStatus === 'EXPIRED' || currentStatus === 'CANCELLED';
 
   if (isTerminated) {
+    const isCancelled = currentStatus === 'CANCELLED';
     return (
-      <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center space-x-3 text-red-900">
-        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+      <div
+        className={`p-4 rounded-xl border flex items-center space-x-3 ${
+          isCancelled
+            ? 'bg-slate-50 border-slate-200 text-slate-800'
+            : 'bg-red-50 border-red-200 text-red-900'
+        }`}
+      >
+        <XCircle
+          className={`w-5 h-5 flex-shrink-0 ${isCancelled ? 'text-slate-500' : 'text-red-600'}`}
+        />
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider">
-            {currentStatus === 'REJECTED' ? 'Request Rejected by Hospital' : 'Request Expired'}
+            {currentStatus === 'REJECTED'
+              ? 'Request Rejected by Hospital'
+              : currentStatus === 'EXPIRED'
+              ? 'Request Expired'
+              : 'Request Cancelled & Stood Down'}
           </h4>
-          <p className="text-xs text-red-700 mt-0.5">
-            This coordination lifecycle is closed. A new request can be created if needed.
+          <p
+            className={`text-xs mt-0.5 ${
+              isCancelled ? 'text-slate-600' : 'text-red-700'
+            }`}
+          >
+            {isCancelled
+              ? 'Emergency blood coordination has been safely cancelled. Contacted donors were stood down.'
+              : 'This coordination lifecycle is closed. A new request can be created if needed.'}
           </p>
         </div>
       </div>
