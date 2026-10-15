@@ -77,6 +77,9 @@ export const api = {
   triggerEscalation: (id: string, stage?: number) =>
     apiRequest(`/requests/${id}/escalate`, { method: 'POST', body: JSON.stringify({ stage }) }),
 
+  cancelBloodRequest: (id: string, payload: { reason: string; notes?: string }) =>
+    apiRequest(`/requests/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
+
   // Donors
   getDonorDashboard: () =>
     apiRequest('/donors/dashboard', { method: 'GET' }),

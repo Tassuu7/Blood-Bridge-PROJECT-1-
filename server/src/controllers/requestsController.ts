@@ -5,6 +5,12 @@ import { detectDuplicateRequest } from '../services/duplicateDetectionService';
 import { createNotification } from '../services/notificationService';
 import { logAudit } from '../services/auditService';
 import { escalateRequest } from '../services/escalationService';
+import {
+  cancelBloodRequest,
+  isRequestCancellable,
+  generateStandDownMessage,
+  CancellationReason,
+} from '../services/cancellationService';
 import { emitToRole, emitToRequest, broadcastGlobal } from '../realtime/socketHandler';
 import { SOCKET_EVENTS } from '../realtime/events';
 import { BloodGroup, UrgencyLevel } from '../../../shared/types';
@@ -15,7 +21,9 @@ const createRequestSchema = z.object({
   bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
   unitsRequired: z.number().int().min(1).max(20),
   urgency: z.enum(['NORMAL', 'URGENT', 'CRITICAL']),
-  requiredBy: z.string(),
+  requiredBy: z.string().refine((val) => !isNaN(new Date(val).getTime()), {
+    message: 'requiredBy must be a valid date string',
+  }),
   notes: z.string().optional(),
 });
 
@@ -314,6 +322,17 @@ export async function markBloodReceived(req: Request, res: Response) {
       return res.status(404).json({ success: false, message: 'Blood request not found.' });
     }
 
+    if (request.status === 'COMPLETED') {
+      return res.status(400).json({ success: false, message: 'This request is already completed.' });
+    }
+
+    if (request.status === 'CANCELLED' || request.status === 'REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot complete a ${request.status.toLowerCase()} blood request.`,
+      });
+    }
+
     // Update donor donation stats
     for (const match of request.matches) {
       await prisma.donorProfile.update({
@@ -399,3 +418,169 @@ export async function triggerManualEscalation(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message || 'Failed to escalate request.' });
   }
 }
+
+const cancelRequestSchema = z.object({
+  reason: z.enum([
+    'FOUND_DONOR_EXTERNAL',
+    'PATIENT_DISCHARGED',
+    'SURGERY_POSTPONED',
+    'HOSPITAL_STOCK_FULFILLED',
+    'REQUEST_EXPIRED',
+    'ENTERED_IN_ERROR',
+    'OTHER',
+  ]),
+  notes: z.string().optional(),
+});
+
+export async function cancelBloodRequestHandler(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const { id } = req.params;
+    const validated = cancelRequestSchema.parse(req.body);
+
+    const request = await prisma.bloodRequest.findUnique({
+      where: { id },
+      include: {
+        hospital: true,
+        matches: {
+          where: {
+            status: { in: ['NOTIFIED', 'ACCEPTED'] },
+          },
+          include: {
+            donor: true,
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Blood request not found.' });
+    }
+
+    // Role-based cancellation authorization:
+    // Only the creator requester, assigned hospital, or admin can cancel
+    const isRequester = request.requesterId === req.user.id;
+    const isAssignedHospital = req.user.hospitalProfileId === request.hospitalId;
+    const isAdmin = req.user.role === 'ADMIN';
+
+    if (!isRequester && !isAssignedHospital && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You do not have permission to cancel this blood request.',
+      });
+    }
+
+    // Validate lifecycle state
+    if (!isRequestCancellable(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Request with status '${request.status}' cannot be cancelled.`,
+      });
+    }
+
+    const activeDonorIds = request.matches.map((m) => m.donorId);
+
+    // Call cancellation service
+    const cancellationResult = cancelBloodRequest({
+      requestId: id,
+      currentStatus: request.status,
+      cancelledByUserId: req.user.id,
+      cancelledByRole: req.user.role,
+      reason: validated.reason as CancellationReason,
+      notes: validated.notes,
+      activeDonorIds,
+    });
+
+    if (!cancellationResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: cancellationResult.error || 'Failed to cancel request.',
+      });
+    }
+
+    // Update blood request status to CANCELLED in database
+    const updatedRequest = await prisma.bloodRequest.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    // Update active notified matches to EXPIRED
+    await prisma.donorMatch.updateMany({
+      where: {
+        requestId: id,
+        status: 'NOTIFIED',
+      },
+      data: {
+        status: 'EXPIRED',
+      },
+    });
+
+    // Add status history record
+    await prisma.requestStatusHistory.create({
+      data: {
+        requestId: id,
+        fromStatus: request.status,
+        toStatus: 'CANCELLED',
+        changedByUserId: req.user.id,
+        reason: `Cancelled (${validated.reason}): ${validated.notes || 'Stand-down alert issued.'}`.trim(),
+      },
+    });
+
+    // Dispatch stand-down notifications to active donors
+    const standDownMessage = generateStandDownMessage(validated.reason as CancellationReason);
+    for (const match of request.matches) {
+      await createNotification({
+        userId: match.donor.userId,
+        category: 'SYSTEM',
+        title: '⚠️ Stand Down: Blood Request Closed',
+        message: standDownMessage,
+        linkUrl: '/donor/dashboard',
+      });
+    }
+
+    // Real-time broadcasts
+    emitToRequest(id, SOCKET_EVENTS.REQUEST_CANCELLED, {
+      requestId: id,
+      reason: validated.reason,
+      cancelledBy: req.user.fullName,
+      status: 'CANCELLED',
+    });
+    emitToRole('HOSPITAL', SOCKET_EVENTS.REQUEST_CANCELLED, { requestId: id });
+    emitToRole('ADMIN', SOCKET_EVENTS.REQUEST_CANCELLED, { requestId: id });
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'REQUEST_CANCELLED',
+      entityType: 'BloodRequest',
+      entityId: id,
+      details: {
+        reason: validated.reason,
+        notes: validated.notes,
+        activeDonorsNotified: activeDonorIds.length,
+      },
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Blood request cancelled successfully. Active donors stood down.',
+      request: updatedRequest,
+      cancellationRecord: cancellationResult.record,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.errors[0]?.message || 'Validation error',
+      });
+    }
+    console.error('cancelBloodRequestHandler error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to cancel blood request.' });
+  }
+}
+
