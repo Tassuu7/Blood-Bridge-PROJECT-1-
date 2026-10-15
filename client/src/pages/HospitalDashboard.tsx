@@ -108,12 +108,14 @@ export const HospitalDashboard: React.FC = () => {
     socket.on('donor:accepted', handleDonorAccepted);
     socket.on('blood:received', loadHospitalData);
     socket.on('request:completed', loadHospitalData);
+    socket.on('inventory:updated', loadHospitalData);
 
     return () => {
       socket.off('request:created', handleNewRequest);
       socket.off('donor:accepted', handleDonorAccepted);
       socket.off('blood:received', loadHospitalData);
       socket.off('request:completed', loadHospitalData);
+      socket.off('inventory:updated', loadHospitalData);
     };
   }, [socket, showToast]);
 

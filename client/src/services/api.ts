@@ -180,6 +180,9 @@ export const api = {
   dispenseInventory: (data: any) =>
     apiRequest('/inventory/dispense', { method: 'POST', body: JSON.stringify(data) }),
 
+  releaseInventory: (data: any) =>
+    apiRequest('/inventory/release', { method: 'POST', body: JSON.stringify(data) }),
+
   getHospitalStaff: (hospitalId?: string) =>
     apiRequest(`/hospital-staff${hospitalId ? `?hospitalId=${hospitalId}` : ''}`, { method: 'GET' }),
 
