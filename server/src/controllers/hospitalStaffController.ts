@@ -11,12 +11,14 @@ import {
   HospitalStaffRole,
 } from '../services/hospitalStaffService';
 
+function resolveHospitalId(req: Request): string | undefined {
+  const user = (req as any).user;
+  return user?.hospitalProfileId || user?.hospitalProfile?.id || (req.query.hospitalId as string) || req.body?.hospitalId || user?.id;
+}
+
 export function getStaffHandler(req: Request, res: Response): void {
   try {
-    const hospitalId =
-      req.user?.hospitalProfileId ||
-      (req as any).user?.hospitalProfile?.id ||
-      (req.query.hospitalId as string);
+    const hospitalId = resolveHospitalId(req);
     if (!hospitalId) {
       res.status(400).json({ success: false, error: 'Hospital identifier is required' });
       return;
@@ -34,10 +36,7 @@ export function getStaffHandler(req: Request, res: Response): void {
 
 export function addStaffHandler(req: Request, res: Response): void {
   try {
-    const hospitalId =
-      req.user?.hospitalProfileId ||
-      (req as any).user?.hospitalProfile?.id ||
-      req.body.hospitalId;
+    const hospitalId = resolveHospitalId(req);
     const { fullName, email, role, licenseNumber, department } = req.body;
 
     if (!hospitalId || !fullName || !email || !role || !department) {
