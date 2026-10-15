@@ -28,6 +28,16 @@ export async function processHospitalVerification(params: {
     throw new Error(`Blood request ${requestId} not found.`);
   }
 
+  // Verification security check: Ensure request belongs to the verifying hospital facility
+  if (request.hospitalId !== hospitalId) {
+    throw new Error(`Unauthorized: Hospital ${hospitalId} is not assigned to blood request ${requestId}.`);
+  }
+
+  // Lifecycle state guard: Only pending verification requests can undergo clinical verification
+  if (request.status !== 'PENDING_VERIFICATION') {
+    throw new Error(`Invalid state: Request ${requestId} is currently in '${request.status}' and cannot be reverified.`);
+  }
+
   // Create verification record
   const verificationRecord = await prisma.verificationRecord.create({
     data: {

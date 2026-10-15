@@ -18,6 +18,8 @@ function runStep(name, fn) {
   } catch (err) {
     console.log('❌ FAILED');
     console.error(err.message);
+    if (err.stdout) console.error(err.stdout.toString());
+    if (err.stderr) console.error(err.stderr.toString());
     process.exit(1);
   }
 }

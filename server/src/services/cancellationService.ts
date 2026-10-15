@@ -30,7 +30,16 @@ const cancellationStore = new Map<string, CancellationRecord>();
  * Validates whether a blood request state is cancellable
  */
 export function isRequestCancellable(currentStatus: string): boolean {
-  const cancellableStatuses = ['PENDING', 'MATCHING', 'PARTIALLY_FULFILLED'];
+  const cancellableStatuses = [
+    'PENDING',
+    'MATCHING',
+    'PARTIALLY_FULFILLED',
+    'PENDING_VERIFICATION',
+    'HOSPITAL_VERIFIED',
+    'MATCHING_IN_PROGRESS',
+    'DONORS_NOTIFIED',
+    'DONOR_CONFIRMED',
+  ];
   return cancellableStatuses.includes(currentStatus);
 }
 

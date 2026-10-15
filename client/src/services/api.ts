@@ -77,6 +77,9 @@ export const api = {
   triggerEscalation: (id: string, stage?: number) =>
     apiRequest(`/requests/${id}/escalate`, { method: 'POST', body: JSON.stringify({ stage }) }),
 
+  cancelBloodRequest: (id: string, payload: { reason: string; notes?: string }) =>
+    apiRequest(`/requests/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
+
   // Donors
   getDonorDashboard: () =>
     apiRequest('/donors/dashboard', { method: 'GET' }),
@@ -132,4 +135,64 @@ export const api = {
 
   markAllNotificationsAsRead: () =>
     apiRequest('/notifications/read-all', { method: 'POST' }),
+
+  // Donor Preferences
+  getDonorPreferences: () =>
+    apiRequest('/donor-preferences', { method: 'GET' }),
+
+  updateDonorPreferences: (data: any) =>
+    apiRequest('/donor-preferences', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Badges & Gamification
+  getDonorBadges: (donorId?: string) =>
+    apiRequest(`/badges/profile${donorId ? `?donorId=${donorId}` : ''}`, { method: 'GET' }),
+
+  getLeaderboard: (limit?: number) =>
+    apiRequest(`/badges/leaderboard${limit ? `?limit=${limit}` : ''}`, { method: 'GET' }),
+
+  getBadgeCatalog: () =>
+    apiRequest('/badges/catalog', { method: 'GET' }),
+
+  // Health Screening
+  evaluateHealthScreening: (data: any) =>
+    apiRequest('/health-screening/evaluate', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Emergency Broadcasts
+  getActiveBroadcasts: () =>
+    apiRequest('/broadcasts/active', { method: 'GET' }),
+
+  issueBroadcast: (data: any) =>
+    apiRequest('/broadcasts', { method: 'POST', body: JSON.stringify(data) }),
+
+  revokeBroadcast: (id: string) =>
+    apiRequest(`/broadcasts/${id}/revoke`, { method: 'POST' }),
+
+  // Hospital Inventory & Staff
+  getHospitalInventory: () =>
+    apiRequest('/inventory', { method: 'GET' }),
+
+  restockInventory: (data: any) =>
+    apiRequest('/inventory/restock', { method: 'POST', body: JSON.stringify(data) }),
+
+  reserveInventory: (data: any) =>
+    apiRequest('/inventory/reserve', { method: 'POST', body: JSON.stringify(data) }),
+
+  dispenseInventory: (data: any) =>
+    apiRequest('/inventory/dispense', { method: 'POST', body: JSON.stringify(data) }),
+
+  getHospitalStaff: () =>
+    apiRequest('/hospital-staff', { method: 'GET' }),
+
+  addHospitalStaff: (data: any) =>
+    apiRequest('/hospital-staff', { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteHospitalStaff: (id: string) =>
+    apiRequest(`/hospital-staff/${id}`, { method: 'DELETE' }),
+
+  // Feedback & Reviews
+  submitFeedback: (data: any) =>
+    apiRequest('/feedback', { method: 'POST', body: JSON.stringify(data) }),
+
+  getDonorFeedback: (donorId: string) =>
+    apiRequest(`/feedback/donor/${donorId}`, { method: 'GET' }),
 };
