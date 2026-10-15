@@ -20,11 +20,11 @@ export async function escalateRequest(requestId: string, forceStage?: number) {
     throw new Error(`Blood request ${requestId} not found.`);
   }
 
-  // Do not escalate if request is completed, cancelled, or already has confirmed donor
-  if (['COMPLETED', 'REJECTED', 'BLOOD_RECEIVED', 'DONOR_CONFIRMED'].includes(request.status)) {
+  // Do not escalate if request is completed, cancelled, rejected, unverified, or already has confirmed donor
+  if (['COMPLETED', 'REJECTED', 'BLOOD_RECEIVED', 'DONOR_CONFIRMED', 'CANCELLED', 'PENDING_VERIFICATION'].includes(request.status)) {
     return {
       success: false,
-      message: `Request is already in status '${request.status}' - no escalation required.`,
+      message: `Request is in status '${request.status}' - no escalation permitted.`,
     };
   }
 

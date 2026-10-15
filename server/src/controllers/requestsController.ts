@@ -322,6 +322,18 @@ export async function markBloodReceived(req: Request, res: Response) {
       return res.status(404).json({ success: false, message: 'Blood request not found.' });
     }
 
+    // Role-based authorization: Only assigned hospital, original requester, or administrator can complete receipt
+    const isAssignedHospital = req.user.role === 'HOSPITAL' && req.user.hospitalProfileId === request.hospitalId;
+    const isRequester = req.user.id === request.requesterId;
+    const isAdmin = req.user.role === 'ADMIN';
+
+    if (!isAssignedHospital && !isRequester && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You do not have permission to confirm blood receipt for this request.',
+      });
+    }
+
     if (request.status === 'COMPLETED') {
       return res.status(400).json({ success: false, message: 'This request is already completed.' });
     }
@@ -330,6 +342,13 @@ export async function markBloodReceived(req: Request, res: Response) {
       return res.status(400).json({
         success: false,
         message: `Cannot complete a ${request.status.toLowerCase()} blood request.`,
+      });
+    }
+
+    if (request.status === 'PENDING_VERIFICATION') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot complete a request that is still pending hospital verification.',
       });
     }
 
@@ -408,8 +427,46 @@ export async function markBloodReceived(req: Request, res: Response) {
 
 export async function triggerManualEscalation(req: Request, res: Response) {
   try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
     const { id } = req.params;
     const { stage } = req.body;
+
+    const request = await prisma.bloodRequest.findUnique({
+      where: { id },
+    });
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: `Blood request ${id} not found.` });
+    }
+
+    // Authorization: Only the creator requester, assigned hospital, or admin can trigger escalation
+    const isRequester = req.user.id === request.requesterId;
+    const isAssignedHospital = req.user.role === 'HOSPITAL' && req.user.hospitalProfileId === request.hospitalId;
+    const isAdmin = req.user.role === 'ADMIN';
+
+    if (!isRequester && !isAssignedHospital && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You do not have permission to escalate this blood request.',
+      });
+    }
+
+    if (['COMPLETED', 'CANCELLED', 'REJECTED', 'BLOOD_RECEIVED', 'DONOR_CONFIRMED'].includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Request is in status '${request.status}' and cannot be escalated.`,
+      });
+    }
+
+    if (request.status === 'PENDING_VERIFICATION') {
+      return res.status(400).json({
+        success: false,
+        message: 'Emergency request must be verified by hospital before radius escalation can begin.',
+      });
+    }
 
     const result = await escalateRequest(id, stage ? parseInt(stage, 10) : undefined);
     return res.json(result);

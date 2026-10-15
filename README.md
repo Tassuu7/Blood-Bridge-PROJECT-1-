@@ -113,6 +113,7 @@ npm test
 17. `emergencyBroadcast.test.ts`: Tiered regional mass-casualty dispatch
 18. `webhook.test.ts`: Outbound HMAC-SHA256 signature verification
 19. `e2eLifecycle.test.ts`: Complete end-to-end trauma admission to fulfillment orchestration
+20. `requestLifecycleGuards.test.ts`: Role-based actor authorization, hospital scoping, and lifecycle state transition guards for request completion and radius escalation
 
 ---
 
