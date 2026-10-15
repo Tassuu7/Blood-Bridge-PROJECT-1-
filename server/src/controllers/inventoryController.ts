@@ -13,9 +13,14 @@ import {
 } from '../services/inventoryService';
 import { BloodGroup } from '../../../shared/types';
 
+function resolveHospitalId(req: Request): string | undefined {
+  const user = (req as any).user;
+  return user?.hospitalProfileId || user?.hospitalProfile?.id || (req.query.hospitalId as string) || req.body?.hospitalId || user?.id;
+}
+
 export function getInventoryHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || (req.query.hospitalId as string);
+    const hospitalId = resolveHospitalId(req);
     if (!hospitalId) {
       res.status(400).json({ success: false, error: 'Hospital identifier is required' });
       return;
@@ -38,7 +43,7 @@ export function getInventoryHandler(req: Request, res: Response): void {
 
 export function restockInventoryHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId = resolveHospitalId(req);
     const { bloodGroup, units, collectedAt, shelfLifeDays } = req.body;
 
     if (!hospitalId || !bloodGroup || !units) {
@@ -65,7 +70,7 @@ export function restockInventoryHandler(req: Request, res: Response): void {
 
 export function reserveInventoryHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId = resolveHospitalId(req);
     const { bloodGroup, units } = req.body;
 
     if (!hospitalId || !bloodGroup || !units) {
@@ -94,7 +99,7 @@ export function reserveInventoryHandler(req: Request, res: Response): void {
 
 export function dispenseInventoryHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId = resolveHospitalId(req);
     const { bloodGroup, units } = req.body;
 
     if (!hospitalId || !bloodGroup || !units) {

@@ -165,8 +165,8 @@ export const api = {
     apiRequest(`/broadcasts/${id}/revoke`, { method: 'POST' }),
 
   // Hospital Inventory & Staff
-  getHospitalInventory: () =>
-    apiRequest('/inventory', { method: 'GET' }),
+  getHospitalInventory: (hospitalId?: string) =>
+    apiRequest(`/inventory${hospitalId ? `?hospitalId=${hospitalId}` : ''}`, { method: 'GET' }),
 
   restockInventory: (data: any) =>
     apiRequest('/inventory/restock', { method: 'POST', body: JSON.stringify(data) }),
@@ -177,8 +177,8 @@ export const api = {
   dispenseInventory: (data: any) =>
     apiRequest('/inventory/dispense', { method: 'POST', body: JSON.stringify(data) }),
 
-  getHospitalStaff: () =>
-    apiRequest('/hospital-staff', { method: 'GET' }),
+  getHospitalStaff: (hospitalId?: string) =>
+    apiRequest(`/hospital-staff${hospitalId ? `?hospitalId=${hospitalId}` : ''}`, { method: 'GET' }),
 
   addHospitalStaff: (data: any) =>
     apiRequest('/hospital-staff', { method: 'POST', body: JSON.stringify(data) }),
