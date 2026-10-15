@@ -47,16 +47,21 @@ runStep('Security check (zero committed .env secrets)', () => {
 });
 
 // 2. Server automated tests
-runStep('Running automated test suites via Vitest', () => {
+runStep('Running backend automated test suites via Vitest', () => {
   execSync('npm test', { cwd: path.join(ROOT_DIR, 'server'), stdio: 'pipe' });
 });
 
-// 3. Server production build
+// 3. Client automated unit tests
+runStep('Running client automated unit tests via Vitest', () => {
+  execSync('npm test', { cwd: path.join(ROOT_DIR, 'client'), stdio: 'pipe' });
+});
+
+// 4. Server production build
 runStep('Building server (tsc)', () => {
   execSync('npm run build', { cwd: path.join(ROOT_DIR, 'server'), stdio: 'pipe' });
 });
 
-// 4. Client production build
+// 5. Client production build
 runStep('Building client (tsc && vite build)', () => {
   execSync('npm run build', { cwd: path.join(ROOT_DIR, 'client'), stdio: 'pipe' });
 });
