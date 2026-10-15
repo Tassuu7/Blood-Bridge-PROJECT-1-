@@ -5,6 +5,7 @@ import {
   getBloodRequestById,
   markBloodReceived,
   triggerManualEscalation,
+  cancelBloodRequestHandler,
 } from '../controllers/requestsController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -18,5 +19,6 @@ router.get('/:id', getBloodRequestById);
 router.post('/', authenticateToken, createBloodRequest);
 router.post('/:id/complete', authenticateToken, markBloodReceived);
 router.post('/:id/escalate', authenticateToken, triggerManualEscalation);
+router.post('/:id/cancel', authenticateToken, cancelBloodRequestHandler);
 
 export default router;

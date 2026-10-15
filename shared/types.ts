@@ -19,7 +19,8 @@ export type RequestStatus =
   | 'BLOOD_RECEIVED'
   | 'COMPLETED'
   | 'REJECTED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'CANCELLED';
 
 export type MatchStatus = 'NOTIFIED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
 
