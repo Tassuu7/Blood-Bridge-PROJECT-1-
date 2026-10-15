@@ -1,0 +1,71 @@
+name: BloodBridge Continuous Integration & Quality Gates
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  verify:
+    name: Build, Test & Master Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Verify No Committed Environment Secrets (.env)
+        run: |
+          if find . -maxdepth 3 -name ".env*" ! -name "example.env" | grep -q .; then
+            echo "::error::Found committed .env file! Aborting for security."
+            exit 1
+          else
+            echo "Security check passed: Zero committed .env secrets detected."
+          fi
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      - name: Install Server Dependencies
+        working-directory: server
+        run: npm ci || npm install
+
+      - name: Generate Prisma Client & Initialize Database
+        working-directory: server
+        run: |
+          npx prisma generate
+          npx prisma db push
+          npm run seed
+
+      - name: Execute Server Automated Test Suite
+        working-directory: server
+        run: npm test
+
+      - name: Compile Server TypeScript
+        working-directory: server
+        run: npm run build
+
+      - name: Install Client Dependencies
+        working-directory: client
+        run: npm ci || npm install
+
+      - name: Compile Client TypeScript & Build Bundle
+        working-directory: client
+        run: npm run build
+
+      - name: Run Master Production Verification Pipeline
+        run: node scripts/verify-all.js

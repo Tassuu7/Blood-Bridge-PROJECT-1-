@@ -206,6 +206,27 @@ export async function respondToMatch(req: Request, res: Response) {
       return res.status(403).json({ success: false, message: 'Unauthorized response to this match.' });
     }
 
+    // Guard 1: Prevent duplicate responses to an already processed match
+    if (match.status !== 'NOTIFIED') {
+      return res.status(409).json({
+        success: false,
+        message: `This match invitation has already been processed with status '${match.status}'.`,
+      });
+    }
+
+    // Guard 2: Ensure the associated blood request is still active and accepting donors
+    const activeRequestStatuses = [
+      'DONORS_NOTIFIED',
+      'MATCHING_IN_PROGRESS',
+      'HOSPITAL_VERIFIED',
+    ];
+    if (!activeRequestStatuses.includes(match.bloodRequest.status)) {
+      return res.status(409).json({
+        success: false,
+        message: `This emergency request has already transitioned to '${match.bloodRequest.status}' and can no longer accept new responses.`,
+      });
+    }
+
     const respondedAt = new Date();
     const responseTimeSeconds = Math.round(
       (respondedAt.getTime() - new Date(match.notifiedAt).getTime()) / 1000

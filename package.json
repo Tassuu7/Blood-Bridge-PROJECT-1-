@@ -12,6 +12,8 @@
     "build:client": "npm run build --prefix client",
     "start": "npm run start --prefix server",
     "test": "npm run test --prefix server",
+    "test:client": "npm run test --prefix client",
+    "test:all": "npm run test --prefix server && npm run test --prefix client",
     "verify": "node scripts/verify-all.js",
     "seed": "npm run seed --prefix server",
     "db:push": "npm run db:push --prefix server",
