@@ -13,7 +13,10 @@ import {
 
 export function getStaffHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || (req.query.hospitalId as string);
+    const hospitalId =
+      req.user?.hospitalProfileId ||
+      (req as any).user?.hospitalProfile?.id ||
+      (req.query.hospitalId as string);
     if (!hospitalId) {
       res.status(400).json({ success: false, error: 'Hospital identifier is required' });
       return;
@@ -31,7 +34,10 @@ export function getStaffHandler(req: Request, res: Response): void {
 
 export function addStaffHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId =
+      req.user?.hospitalProfileId ||
+      (req as any).user?.hospitalProfile?.id ||
+      req.body.hospitalId;
     const { fullName, email, role, licenseNumber, department } = req.body;
 
     if (!hospitalId || !fullName || !email || !role || !department) {

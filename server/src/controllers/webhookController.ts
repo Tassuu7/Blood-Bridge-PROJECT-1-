@@ -11,7 +11,10 @@ import {
 
 export function registerWebhookHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId =
+      req.user?.hospitalProfileId ||
+      (req as any).user?.hospitalProfile?.id ||
+      req.body.hospitalId;
     const { targetUrl, secretKey, events } = req.body;
 
     if (!hospitalId || !targetUrl || !secretKey) {
@@ -59,7 +62,10 @@ export function getDeliveriesHandler(req: Request, res: Response): void {
 
 export function testWebhookDispatchHandler(req: Request, res: Response): void {
   try {
-    const hospitalId = (req as any).user?.hospitalProfile?.id || req.body.hospitalId;
+    const hospitalId =
+      req.user?.hospitalProfileId ||
+      (req as any).user?.hospitalProfile?.id ||
+      req.body.hospitalId;
     const { event, data } = req.body;
 
     if (!hospitalId || !event) {
