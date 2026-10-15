@@ -61,6 +61,15 @@ export function emitToRequest(requestId: string, event: string, data: any): void
 }
 
 /**
+ * Emit event to a hospital room (e.g. 'hospital:{hospitalId}')
+ */
+export function emitToHospital(hospitalId: string, event: string, data: any): void {
+  if (ioInstance) {
+    ioInstance.to(`hospital:${hospitalId}`).emit(event, data);
+  }
+}
+
+/**
  * Broadcast event to all connected clients
  */
 export function broadcastGlobal(event: string, data: any): void {
