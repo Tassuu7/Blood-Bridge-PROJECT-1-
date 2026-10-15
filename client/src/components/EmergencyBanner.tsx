@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, X, MapPin, Radio } from 'lucide-react';
+import { useSocket } from '../contexts/SocketContext';
 
 export interface EmergencyAlert {
   id: string;
@@ -14,28 +15,52 @@ export const EmergencyBanner: React.FC<{ alerts?: EmergencyAlert[] }> = ({ alert
   const [internalAlerts, setInternalAlerts] = useState<EmergencyAlert[]>([]);
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
 
+  let socket = null;
+  try {
+    const socketContext = useSocket();
+    socket = socketContext.socket;
+  } catch {
+    // Graceful fallback if rendered outside SocketProvider
+  }
+
+  const fetchActiveAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/broadcasts/active');
+      if (res.ok) {
+        const body = await res.json();
+        if (body.success && Array.isArray(body.data)) {
+          setInternalAlerts(body.data);
+        }
+      }
+    } catch {
+      // Fallback gracefully if endpoint is unavailable
+    }
+  }, []);
+
   useEffect(() => {
     if (alerts !== undefined) {
       setInternalAlerts(alerts);
       return;
     }
 
-    const fetchActiveAlerts = async () => {
-      try {
-        const res = await fetch('/api/broadcasts/active');
-        if (res.ok) {
-          const body = await res.json();
-          if (body.success && Array.isArray(body.data)) {
-            setInternalAlerts(body.data);
-          }
-        }
-      } catch {
-        // Fallback gracefully if endpoint is unavailable
-      }
+    fetchActiveAlerts();
+  }, [alerts, fetchActiveAlerts]);
+
+  useEffect(() => {
+    if (!socket || alerts !== undefined) return;
+
+    const handleBroadcastUpdate = () => {
+      fetchActiveAlerts();
     };
 
-    fetchActiveAlerts();
-  }, [alerts]);
+    socket.on('emergency:broadcast', handleBroadcastUpdate);
+    socket.on('emergency:broadcast_revoked', handleBroadcastUpdate);
+
+    return () => {
+      socket.off('emergency:broadcast', handleBroadcastUpdate);
+      socket.off('emergency:broadcast_revoked', handleBroadcastUpdate);
+    };
+  }, [socket, alerts, fetchActiveAlerts]);
 
   const effectiveAlerts = alerts !== undefined ? alerts : internalAlerts;
   const activeAlerts = effectiveAlerts.filter((a) => !dismissed[a.id]);

@@ -30,4 +30,8 @@ export const SOCKET_EVENTS = {
   
   // Platform / Metrics
   METRICS_UPDATED: 'platform:metrics_updated',
+
+  // Regional Emergency Broadcasts
+  EMERGENCY_BROADCAST: 'emergency:broadcast',
+  EMERGENCY_BROADCAST_REVOKED: 'emergency:broadcast_revoked',
 } as const;
