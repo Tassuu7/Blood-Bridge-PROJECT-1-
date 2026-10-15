@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { AcceptDeclineModal } from '../components/modals/AcceptDeclineModal';
+import { DonorPreferencesModal } from '../components/modals/DonorPreferencesModal';
+import { HealthScreeningQuiz } from '../components/HealthScreeningQuiz';
+import { BadgeDisplay, BadgeItem } from '../components/BadgeDisplay';
 import { AvailabilityStatus } from '@shared/types';
 import {
   Heart,
@@ -16,6 +20,10 @@ import {
   Award,
   AlertTriangle,
   RefreshCw,
+  Sliders,
+  HeartPulse,
+  Trophy,
+  X,
 } from 'lucide-react';
 
 export const DonorDashboard: React.FC = () => {
@@ -30,6 +38,11 @@ export const DonorDashboard: React.FC = () => {
   const [donationHistory, setDonationHistory] = useState<any[]>([]);
   const [stats, setStats] = useState<any | null>(null);
 
+  const [preferences, setPreferences] = useState<any | null>(null);
+  const [isPrefsModalOpen, setIsPrefsModalOpen] = useState(false);
+  const [isScreeningModalOpen, setIsScreeningModalOpen] = useState(false);
+  const [badges, setBadges] = useState<BadgeItem[]>([]);
+
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -37,13 +50,26 @@ export const DonorDashboard: React.FC = () => {
   const loadDonorData = async () => {
     setIsLoading(true);
     try {
-      const res = await api.getDonorDashboard();
-      if (res.success) {
-        setProfile(res.profile);
-        setIncomingRequests(res.incomingRequests);
-        setActiveCommitments(res.activeCommitments);
-        setDonationHistory(res.donationHistory);
-        setStats(res.stats);
+      const [res, prefsRes, badgesRes] = await Promise.allSettled([
+        api.getDonorDashboard(),
+        api.getDonorPreferences(),
+        api.getDonorBadges(),
+      ]);
+
+      if (res.status === 'fulfilled' && res.value.success) {
+        setProfile(res.value.profile);
+        setIncomingRequests(res.value.incomingRequests);
+        setActiveCommitments(res.value.activeCommitments);
+        setDonationHistory(res.value.donationHistory);
+        setStats(res.value.stats);
+      }
+
+      if (prefsRes.status === 'fulfilled' && prefsRes.value.success) {
+        setPreferences(prefsRes.value.data);
+      }
+
+      if (badgesRes.status === 'fulfilled' && badgesRes.value.success) {
+        setBadges(badgesRes.value.data?.badges || []);
       }
     } catch (err: any) {
       console.error('Failed to load donor dashboard:', err);
@@ -91,6 +117,19 @@ export const DonorDashboard: React.FC = () => {
     }
   };
 
+  const handleSavePreferences = async (data: any) => {
+    try {
+      const res = await api.updateDonorPreferences(data);
+      if (res.success) {
+        setPreferences(res.data);
+        showToast('Preferences Saved', 'Dispatch travel radius and alert channels updated.', 'success');
+      }
+    } catch (err: any) {
+      showToast('Error', err.message || 'Could not update preferences', 'error');
+      throw err;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -126,49 +165,72 @@ export const DonorDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Availability Controls */}
-        <div className="w-full md:w-auto p-2 rounded-xl bg-slate-50 border border-slate-200">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-2">
-            My Availability Status
-          </span>
-          <div className="grid grid-cols-3 gap-1.5 text-xs">
+        {/* Availability & Quick Actions */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+          {/* Availability Controls */}
+          <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-2">
+              My Availability Status
+            </span>
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
+              <button
+                onClick={() => handleStatusChange('AVAILABLE')}
+                disabled={isUpdatingStatus}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
+                  currentStatus === 'AVAILABLE'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Available</span>
+              </button>
+
+              <button
+                onClick={() => handleStatusChange('AVAILABLE_LATER')}
+                disabled={isUpdatingStatus}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
+                  currentStatus === 'AVAILABLE_LATER'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Later</span>
+              </button>
+
+              <button
+                onClick={() => handleStatusChange('NOT_AVAILABLE')}
+                disabled={isUpdatingStatus}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
+                  currentStatus === 'NOT_AVAILABLE'
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Paused</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex sm:flex-col gap-1.5 justify-center">
             <button
-              onClick={() => handleStatusChange('AVAILABLE')}
-              disabled={isUpdatingStatus}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
-                currentStatus === 'AVAILABLE'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
+              onClick={() => setIsPrefsModalOpen(true)}
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition"
+              title="Configure alert travel radius and quiet hours"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Available</span>
+              <Sliders className="w-3.5 h-3.5 text-slate-500" />
+              <span>Preferences</span>
             </button>
 
             <button
-              onClick={() => handleStatusChange('AVAILABLE_LATER')}
-              disabled={isUpdatingStatus}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
-                currentStatus === 'AVAILABLE_LATER'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
+              onClick={() => setIsScreeningModalOpen(true)}
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition"
+              title="Pre-donation clinical safety self-check"
             >
-              <Clock className="w-3.5 h-3.5" />
-              <span>Later</span>
-            </button>
-
-            <button
-              onClick={() => handleStatusChange('NOT_AVAILABLE')}
-              disabled={isUpdatingStatus}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center space-x-1 ${
-                currentStatus === 'NOT_AVAILABLE'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Paused</span>
+              <HeartPulse className="w-3.5 h-3.5 text-red-600" />
+              <span>Self-Screen</span>
             </button>
           </div>
         </div>
@@ -209,6 +271,44 @@ export const DonorDashboard: React.FC = () => {
             <Heart className="w-6 h-6 text-blue-600 opacity-70 fill-blue-100" />
           </div>
         </div>
+      </div>
+
+      {/* Achievements & Recognition Badges */}
+      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-card space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <h3 className="text-sm font-bold text-slate-900">Lifesaver Milestones & Badges</h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+              {badges.length} Unlocked
+            </span>
+          </div>
+          <Link
+            to="/leaderboard"
+            className="text-xs font-semibold text-crimson-700 hover:text-crimson-800 hover:underline flex items-center gap-1"
+          >
+            <span>View Hall of Fame</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {badges.length === 0 ? (
+          <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span>Respond to emergency dispatches to earn badges like <strong>First Drop</strong> and <strong>Lightning Responder</strong>.</span>
+            <Link
+              to="/leaderboard"
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition text-center"
+            >
+              Check Leaderboard
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            {badges.map((badge) => (
+              <BadgeDisplay key={badge.badgeId} badge={badge} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Incoming Emergency Requests Section */}
@@ -386,6 +486,33 @@ export const DonorDashboard: React.FC = () => {
           setSelectedMatch(null);
         }}
         onResponded={loadDonorData}
+      />
+
+      {/* Pre-Donation Health Screening Modal */}
+      {isScreeningModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 relative">
+            <button
+              onClick={() => setIsScreeningModalOpen(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              title="Close screening quiz"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <HealthScreeningQuiz onComplete={() => {}} />
+          </div>
+        </div>
+      )}
+
+      {/* Alert & Dispatch Preferences Modal */}
+      <DonorPreferencesModal
+        isOpen={isPrefsModalOpen}
+        onClose={() => setIsPrefsModalOpen(false)}
+        initialDistanceKm={preferences?.maxTravelDistanceKm || 25}
+        initialChannels={preferences?.channels || ['PUSH', 'SMS']}
+        initialQuietHours={preferences?.quietHoursEnabled || false}
+        initialEmergencyOnly={preferences?.emergencyOnly || false}
+        onSave={handleSavePreferences}
       />
     </div>
   );
